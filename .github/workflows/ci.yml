@@ -1,35 +1,23 @@
-name: Build and Push Docker Images
-
-on:
-  push:
-    branches:
-      - main   # או כל סניף אחר שתרצה לעקוב אחריו
-
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    env:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
     steps:
-      # 1️⃣ קוד המקור
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 2️⃣ התחברות ל-Docker Hub
       - name: Login to DockerHub
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+        run: echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
 
-      # 3️⃣ בניית האימג'ים
       - name: Build Docker images
         run: |
-          docker build -t ${DOCKER_USERNAME}/flask_app:latest ./ 
+          docker build -t ${DOCKER_USERNAME}/flask_app:latest ./
           docker build -t ${DOCKER_USERNAME}/flask_test:latest ./test
 
-      # 4️⃣ Push של האימג'ים ל-Docker Hub
       - name: Push Docker images
         run: |
           docker push ${DOCKER_USERNAME}/flask_app:latest
           docker push ${DOCKER_USERNAME}/flask_test:latest
-
-      # 5️⃣ אופציונלי: הרצת docker-compose locally (לבדיקה)
-      - name: Run docker-compose
-        run: docker-compose up -d
