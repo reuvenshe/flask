@@ -6,7 +6,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://{}:{}@{}/{}'.format(
     os.getenv('DB_USER', 'root'),
     os.getenv('DB_PASSWORD', 'pass'),
     os.getenv('DB_HOST', 'flask_mysql'),
-    os.getenv('DB_NAME', 'flask')
+    os.getenv('DB_NAME', 'flask'),
+    os.getenv('DB_PORT', '3307')
 )
 db = SQLAlchemy(app)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
