@@ -32,4 +32,4 @@ jobs:
 
       # 5️⃣ אופציונלי: הרצת docker-compose locally (לבדיקה)
       - name: Run docker-compose
-         run: docker-compose up -d
+        run: docker-compose up -d
