@@ -9,7 +9,7 @@ def wait_for_flask(max_retries=10, delay=3):
         try:
             r = requests.get(BASE_URL)
             if r.status_code == 200:
-                print("✅ Flask is up!")
+                print("✅ Flask now is up!")
                 return True
         except requests.exceptions.ConnectionError:
             print(f"Flask not ready yet... retry {i+1}/{max_retries}")
