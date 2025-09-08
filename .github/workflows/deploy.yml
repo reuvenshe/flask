@@ -1,4 +1,4 @@
-name: Deploy to EC2
+name: Deploy via SCP to EC2
 
 on:
   push:
@@ -10,44 +10,28 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
-    - name: Add SSH key
-      run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan github.com >> ~/.ssh/known_hosts
+      # 1. Checkout repository
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: SSH to EC2 and deploy
-      uses: appleboy/ssh-action@v0.1.10
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USER }}
-        key: ${{ secrets.EC2_SSH_KEY }}
-        script: |
-          # צור תיקיית פרויקט אם לא קיימת
-          mkdir -p ~/flask_project
-          cd ~/flask_project
-          
-          # הוסף את GitHub ל-known_hosts כדי למנוע host key verification failed
-          mkdir -p ~/.ssh
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
+      # 2. Copy files to EC2 using SCP
+      - name: Copy project to EC2
+        uses: appleboy/scp-action@v0.1.6
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "."
+          target: "/home/ec2-user/flask_project"
 
-          # עדכן את הריפו או בצע clone אם לא קיים
-          if [ -d ".git" ]; then
-            git reset --hard
-            git pull origin main
-          else
-            git clone git@github.com:reuvenshe/flask.git .
-          fi
-
-          # התקן Docker Compose אם לא מותקן (,,ל‑Amazon Linux)
-          if ! command -v docker-compose &> /dev/null; then
-            sudo curl -L "https://github.com/docker/compose/releases/download/2.17.3/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-            sudo chmod +x /usr/local/bin/docker-compose
-          fi
-
-          # בנה והריץ את הקונטיינרים
-          docker-compose down
-          docker-compose up -d --build
+      # 3. Connect to EC2 and run Docker Compose
+      - name: Run Docker Compose on EC2
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /home/ec2-user/flask_project
+            docker compose down
+            docker compose up -d --build
