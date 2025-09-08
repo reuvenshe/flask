@@ -7,46 +7,47 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest  # GitHub Actions runner
+    runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: SSH to EC2 and deploy
-      uses: appleboy/ssh-action@v0.1.10
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USER }}
-        key: ${{ secrets.EC2_SSH_KEY }}
-        script: |
-          # עדכון חבילות
-          sudo yum update -y
+      - name: SSH to EC2 and deploy
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # מעבר לתיקייה הביתית
+            cd /home/ec2-user
 
-          # התקנת Docker אם לא מותקן
-          if ! command -v docker &> /dev/null; then
-            sudo yum install -y docker
-            sudo service docker start
-            sudo usermod -aG docker $USER
-          fi
+            # אם התיקייה לא קיימת – clone
+            if [ ! -d "flask_project/.git" ]; then
+                git clone https://github.com/${GITHUB_REPOSITORY} flask_project
+            fi
 
-          # התקנת Docker Compose אם לא מותקן
-          if ! command -v docker-compose &> /dev/null; then
-            sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-            sudo chmod +x /usr/local/bin/docker-compose
-          fi
+            cd flask_project
 
-          # קבלת קוד מה‑repo
-          if [ ! -d "/home/ec2-user/flask_project" ]; then
-            git clone https://github.com/${{ github.repository }} /home/ec2-user/flask_project
-          else
-            cd /home/ec2-user/flask_project
-            git reset --hard
-            git pull origin main
-          fi
+            # עדכון הקוד
+            git fetch origin
+            git reset --hard origin/main
 
-          # בנייה והרצה של הקונטיינרים
-          cd /home/ec2-user/flask_project
-          docker-compose down
-          docker-compose up -d --build
+            # התקנת Docker ו‑docker-compose אם לא קיימים
+            if ! command -v docker &> /dev/null; then
+              sudo amazon-linux-extras install docker -y
+              sudo service docker start
+              sudo usermod -a -G docker ec2-user
+            fi
+
+            if ! command -v docker-compose &> /dev/null; then
+              sudo curl -L "https://github.com/docker/compose/releases/download/2.20.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+              sudo chmod +x /usr/local/bin/docker-compose
+            fi
+
+            # הרצת הקונטיינרים
+            docker-compose down
+            docker-compose up -d --build
+
 
