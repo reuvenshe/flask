@@ -29,6 +29,6 @@ if __name__ == "__main__":
     wait_for_flask()
     test_add_task()
 
-    print("🎉 Test run complete!")
+    print("🎉   Test run complete!")
 
 
