@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # GitHub Actions runner
 
     steps:
     - name: Checkout repository
@@ -20,34 +20,33 @@ jobs:
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
-          echo "Updating code on EC2..."
-          cd ~/flask_project || mkdir -p ~/flask_project
-          git fetch --all
-          git reset --hard origin/main
+          # עדכון חבילות
+          sudo yum update -y
 
-          echo "Building Docker images..."
-          docker-compose -f ~/flask_project/docker-compose.yml build
+          # התקנת Docker אם לא מותקן
+          if ! command -v docker &> /dev/null; then
+            sudo yum install -y docker
+            sudo service docker start
+            sudo usermod -aG docker $USER
+          fi
 
-          echo "Starting containers..."
-          docker-compose -f ~/flask_project/docker-compose.yml up -d
+          # התקנת Docker Compose אם לא מותקן
+          if ! command -v docker-compose &> /dev/null; then
+            sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+            sudo chmod +x /usr/local/bin/docker-compose
+          fi
 
-          echo "Deployment complete!"
-    - name: SSH to EC2 and deploy
-      uses: appleboy/ssh-action@v0.1.10
-      with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            # פקודות EC2
-            cd ~/flask_project || mkdir ~/flask_project && cd ~/flask_project
-
-            # משוך את הקוד האחרון
+          # קבלת קוד מה‑repo
+          if [ ! -d "/home/ec2-user/flask_project" ]; then
+            git clone https://github.com/${{ github.repository }} /home/ec2-user/flask_project
+          else
+            cd /home/ec2-user/flask_project
+            git reset --hard
             git pull origin main
+          fi
 
-            # בניית Docker Compose
-            docker compose build
-
-            # הרצת הקונטיינרים
-            docker compose up -d
+          # בנייה והרצה של הקונטיינרים
+          cd /home/ec2-user/flask_project
+          docker-compose down
+          docker-compose up -d --build
 
