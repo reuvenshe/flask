@@ -20,4 +20,16 @@ jobs:
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
-          echo "Hello reuven from GitHub Actions!"
+          echo "Updating code on EC2..."
+          cd ~/flask_project || mkdir -p ~/flask_project
+          git fetch --all
+          git reset --hard origin/main
+
+          echo "Building Docker images..."
+          docker-compose -f ~/flask_project/docker-compose.yml build
+
+          echo "Starting containers..."
+          docker-compose -f ~/flask_project/docker-compose.yml up -d
+
+          echo "Deployment complete!"
+
