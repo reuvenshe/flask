@@ -25,7 +25,7 @@ jobs:
 
             # אם התיקייה לא קיימת – clone
             if [ ! -d "flask_project/.git" ]; then
-                git clone https://github.com/${GITHUB_REPOSITORY} flask_project
+                git clone git@github.com:reuvenshe/flask.git flask_project
             fi
 
             cd flask_project
