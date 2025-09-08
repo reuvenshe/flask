@@ -46,4 +46,7 @@ jobs:
             cd ~/flask_project
 
             # בנייה והרצת הקונטיינרים
+            docker compose down --remove-orphans || true
+            
+
             docker compose up -d --build
